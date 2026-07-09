@@ -1,0 +1,38 @@
+# Built outputs
+app/build/
+build/
+*.apk
+*.aab
+*.aar
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Local config (contains your machine's SDK path — never commit this)
+local.properties
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
+
+# Signing keys — NEVER commit these
+*.jks
+*.keystore
+*.pk8
+*.pem
+
+# Kotlin build caches
+**/.kotlin/
+
+# Android profiling / test output
+*.hprof
+captures/
+
+# Owner backup directories
+backup_pre_sharing/
