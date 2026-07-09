@@ -130,6 +130,7 @@ fun SettingsScreen(
     }
 
     val triggerIconPicker = {
+        repository.setLaunchingPicker(true)
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         iconPickerLauncher.launch(intent)
     }
@@ -157,6 +158,7 @@ fun SettingsScreen(
 
     val triggerSearchThumbnailPicker = { itemName: String ->
         activeSearchItemNameForThumbnail = itemName
+        repository.setLaunchingPicker(true)
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         searchThumbnailPickerLauncher.launch(intent)
     }

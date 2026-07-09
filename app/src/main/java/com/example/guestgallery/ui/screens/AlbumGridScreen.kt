@@ -130,6 +130,7 @@ fun AlbumGridScreen(
 
     val defaultPickerSource by repository.defaultPickerSource.collectAsState()
     val triggerShowcasePicker = {
+        repository.setLaunchingPicker(true)
         val intent = if (defaultPickerSource == "google") {
             Intent(Intent.ACTION_PICK).apply {
                 type = "image/*"

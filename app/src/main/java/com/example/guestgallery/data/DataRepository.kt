@@ -83,6 +83,9 @@ interface GalleryRepository {
 
     val defaultPickerSource: StateFlow<String>
     fun setDefaultPickerSource(source: String)
+
+    val isLaunchingPicker: StateFlow<Boolean>
+    fun setLaunchingPicker(active: Boolean)
 }
 
 class DefaultGalleryRepository(private val context: Context) : GalleryRepository {
@@ -91,6 +94,9 @@ class DefaultGalleryRepository(private val context: Context) : GalleryRepository
     
     private val _isGuestMode = MutableStateFlow(true)
     override val isGuestMode: StateFlow<Boolean> = _isGuestMode.asStateFlow()
+
+    private val _isLaunchingPicker = MutableStateFlow(false)
+    override val isLaunchingPicker: StateFlow<Boolean> = _isLaunchingPicker.asStateFlow()
 
     private val _defaultPickerSource = MutableStateFlow(prefs.getString("default_picker_source", "native") ?: "native")
     override val defaultPickerSource: StateFlow<String> = _defaultPickerSource.asStateFlow()
@@ -427,6 +433,10 @@ class DefaultGalleryRepository(private val context: Context) : GalleryRepository
     override fun setDefaultPickerSource(source: String) {
         prefs.edit().putString("default_picker_source", source).apply()
         _defaultPickerSource.value = source
+    }
+
+    override fun setLaunchingPicker(active: Boolean) {
+        _isLaunchingPicker.value = active
     }
 
 

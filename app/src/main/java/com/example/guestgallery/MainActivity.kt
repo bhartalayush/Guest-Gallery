@@ -46,8 +46,17 @@ class MainActivity : FragmentActivity() {
     }
   }
 
+  override fun onResume() {
+    super.onResume()
+    if (::repository.isInitialized) {
+      repository.setLaunchingPicker(false)
+    }
+  }
+
   override fun onStop() {
     super.onStop()
-    lockPhonePhysically()
+    if (::repository.isInitialized && !repository.isLaunchingPicker.value) {
+      lockPhonePhysically()
+    }
   }
 }
