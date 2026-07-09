@@ -16,16 +16,17 @@ This app solves that scenario. You can quickly open the specific pictures you ac
 - Custom Mockups: Full control to customize mock categories, cities, names, and images on the search tab.
 - Fast Local Picker: Integration of direct device local pickers that bypass cloud sync processes to add showcase media instantly.
 - Peace of Mind Deletions: Deleting media in guest mode removes the reference from the guest screen immediately to assure the guest, while keeping the actual phone files untouched.
-- Lock on Exit: Configurable preference to require biometric or PIN authentication before leaving guest view.
+- Default Picker Source: Choose between System Gallery and Google Photos as the default picker in settings to instantly launch your preferred tool.
+- Physical Device Locking: Automatically locks the device screen using Device Admin privileges whenever someone tries to exit, minimize, or swipe away from the app.
 - Custom App Icons: Built in options to swap between preconfigured app icons, including standard photos and gallery options.
 
 ## Tech Stack
 
 - Kotlin and Jetpack Compose
 - Material You Dynamic Theme
-- SQLite and Jetpack Room for persistent decoy storage
+- JSON serialization database for persistent decoy storage
 - SharedPreferences for security options and preferences
-- BiometricPrompt API for security challenges
+- DevicePolicyManager API for physical device lock integration
 
 ## Installation
 
