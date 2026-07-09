@@ -140,6 +140,32 @@ fun AlbumGridScreen(
         } else {
             Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
                 putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                try {
+                    val pm = context.packageManager
+                    val resolveInfos = pm.queryIntentActivities(this, 0)
+                    var nativePkg: String? = null
+                    for (info in resolveInfos) {
+                        val pkg = info.activityInfo.packageName
+                        if (pkg != "com.google.android.apps.photos" && pkg != "android") {
+                            nativePkg = pkg
+                            break
+                        }
+                    }
+                    if (nativePkg == null) {
+                        val manufacturer = android.os.Build.MANUFACTURER.lowercase()
+                        if (manufacturer.contains("samsung")) nativePkg = "com.sec.android.gallery3d"
+                        else if (manufacturer.contains("xiaomi")) nativePkg = "com.miui.gallery"
+                        else if (manufacturer.contains("huawei")) nativePkg = "com.huawei.photos"
+                        else if (manufacturer.contains("oneplus")) nativePkg = "com.oneplus.gallery"
+                        else if (manufacturer.contains("oppo")) nativePkg = "com.coloros.gallery"
+                        else if (manufacturer.contains("vivo")) nativePkg = "com.vivo.gallery"
+                    }
+                    if (nativePkg != null) {
+                        setPackage(nativePkg)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
         try {
