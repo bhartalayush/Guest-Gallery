@@ -1,6 +1,8 @@
 package com.example.guestgallery.ui.screens
 
 import android.app.Activity
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -58,7 +60,7 @@ fun SettingsScreen(
     val areDecoysEnabled by repository.areDecoysEnabled.collectAsState()
     val activeAppIcon by repository.activeAppIcon.collectAsState()
     val customIconPath by repository.customIconPath.collectAsState()
-    val requireAuthOnExit by repository.requireAuthOnExit.collectAsState()
+    val defaultPickerSource by repository.defaultPickerSource.collectAsState()
     
     val uiOverrideEnabled by repository.uiOverrideEnabled.collectAsState()
     val uiOverrideColumns by repository.uiOverrideColumns.collectAsState()
@@ -73,6 +75,14 @@ fun SettingsScreen(
     var pinError by remember { mutableStateOf("") }
 
     var showCleanSessionDialog by remember { mutableStateOf(false) }
+
+    val dpm = remember(context) { context.getSystemService(android.content.Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager }
+    val adminComponent = remember(context) { ComponentName(context, com.example.guestgallery.MyDeviceAdminReceiver::class.java) }
+    var isDeviceAdminActive by remember { mutableStateOf(dpm.isAdminActive(adminComponent)) }
+
+    LaunchedEffect(Unit) {
+        isDeviceAdminActive = dpm.isAdminActive(adminComponent)
+    }
 
     // Picker launcher for custom launcher icon
     val iconPickerLauncher = rememberLauncherForActivityResult(
@@ -304,33 +314,61 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.padding(end = 12.dp))
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.padding(end = 12.dp))
                             Column {
-                                Text("Lock on Exit", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                                Text("Require biometrics/PIN to exit guest mode", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                                Text("Default Photo Picker", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                Text("App to launch when pressing the + button", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                             }
                         }
-                        Switch(
-                            checked = requireAuthOnExit,
-                            onCheckedChange = { repository.setRequireAuthOnExit(it) }
-                        )
+                        TextButton(
+                            onClick = {
+                                if (defaultPickerSource == "native") {
+                                    repository.setDefaultPickerSource("google")
+                                } else {
+                                    repository.setDefaultPickerSource("native")
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = if (defaultPickerSource == "google") "Google Photos" else "System Gallery",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     HorizontalDivider()
 
-                    // Reset PIN Button
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showPinResetDialog = true }
-                            .padding(vertical = 16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.LockReset, contentDescription = null, modifier = Modifier.padding(end = 12.dp))
-                        Column {
-                            Text("Reset Owner PIN", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                            Text("Change security bypass PIN", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.padding(end = 12.dp))
+                            Column {
+                                Text("Physically Lock Screen", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                Text("Turn off and lock screen physically when a guest tries to exit or minimize the app (requires Device Admin permission)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                            }
                         }
+                        Switch(
+                            checked = isDeviceAdminActive,
+                            onCheckedChange = { active ->
+                                if (active) {
+                                    val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                                        putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Required to physically lock the phone screen when a guest tries to exit the app.")
+                                    }
+                                    context.startActivity(intent)
+                                } else {
+                                    try {
+                                        dpm.removeActiveAdmin(adminComponent)
+                                        isDeviceAdminActive = false
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
+                        )
                     }
 
                     HorizontalDivider()

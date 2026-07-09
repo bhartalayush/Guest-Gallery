@@ -81,20 +81,19 @@ interface GalleryRepository {
     fun setSearchThings(names: String)
     fun setSearchThumbnail(name: String, uri: String?)
 
-    // Security Options
-    val requireAuthOnExit: StateFlow<Boolean>
-    fun setRequireAuthOnExit(enabled: Boolean)
-
-    val isAppLocked: StateFlow<Boolean>
-    fun setAppLocked(locked: Boolean)
+    val defaultPickerSource: StateFlow<String>
+    fun setDefaultPickerSource(source: String)
 }
 
 class DefaultGalleryRepository(private val context: Context) : GalleryRepository {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("guest_gallery_prefs", Context.MODE_PRIVATE)
     
-    private val _isGuestMode = MutableStateFlow(prefs.getBoolean("is_guest_mode", false))
+    private val _isGuestMode = MutableStateFlow(true)
     override val isGuestMode: StateFlow<Boolean> = _isGuestMode.asStateFlow()
+
+    private val _defaultPickerSource = MutableStateFlow(prefs.getString("default_picker_source", "native") ?: "native")
+    override val defaultPickerSource: StateFlow<String> = _defaultPickerSource.asStateFlow()
 
     private val _areDecoysEnabled = MutableStateFlow(prefs.getBoolean("are_decoys_enabled", true))
     override val areDecoysEnabled: StateFlow<Boolean> = _areDecoysEnabled.asStateFlow()
@@ -150,11 +149,7 @@ class DefaultGalleryRepository(private val context: Context) : GalleryRepository
     private val _searchThumbnails = MutableStateFlow<Map<String, String>>(emptyMap())
     override val searchThumbnails: StateFlow<Map<String, String>> = _searchThumbnails.asStateFlow()
 
-    private val _requireAuthOnExit = MutableStateFlow(prefs.getBoolean("require_auth_on_exit", true))
-    override val requireAuthOnExit: StateFlow<Boolean> = _requireAuthOnExit.asStateFlow()
-
-    private val _isAppLocked = MutableStateFlow(prefs.getString("owner_pin", null) != null)
-    override val isAppLocked: StateFlow<Boolean> = _isAppLocked.asStateFlow()
+    // Obsolete security flags removed
 
     override val isSetupCompleted: Boolean
         get() = prefs.getString("owner_pin", null) != null
@@ -429,13 +424,9 @@ class DefaultGalleryRepository(private val context: Context) : GalleryRepository
         prefs.edit().putString("search_thumbnails_json", obj.toString()).apply()
     }
 
-    override fun setRequireAuthOnExit(enabled: Boolean) {
-        prefs.edit().putBoolean("require_auth_on_exit", enabled).apply()
-        _requireAuthOnExit.value = enabled
-    }
-
-    override fun setAppLocked(locked: Boolean) {
-        _isAppLocked.value = locked
+    override fun setDefaultPickerSource(source: String) {
+        prefs.edit().putString("default_picker_source", source).apply()
+        _defaultPickerSource.value = source
     }
 
 

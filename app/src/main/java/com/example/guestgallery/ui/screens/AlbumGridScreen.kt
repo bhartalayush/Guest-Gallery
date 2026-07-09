@@ -1,6 +1,9 @@
 package com.example.guestgallery.ui.screens
 
 import android.app.Activity
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
@@ -11,7 +14,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.geometry.Size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -119,16 +124,35 @@ fun AlbumGridScreen(
             }
             if (uris.isNotEmpty()) {
                 repository.addShowcasedMedia(uris)
-                repository.setGuestMode(true) // Switch to guest mode instantly
             }
         }
     }
 
+    val defaultPickerSource by repository.defaultPickerSource.collectAsState()
     val triggerShowcasePicker = {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
-            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        val intent = if (defaultPickerSource == "google") {
+            Intent(Intent.ACTION_PICK).apply {
+                type = "image/*"
+                setPackage("com.google.android.apps.photos")
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            }
+        } else {
+            Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            }
         }
-        pickerLauncher.launch(intent)
+        try {
+            pickerLauncher.launch(intent)
+        } catch (e: Exception) {
+            val fallbackIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+            }
+            try {
+                pickerLauncher.launch(fallbackIntent)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
+        }
     }
 
     if (isMultiSelectMode) {
@@ -136,10 +160,41 @@ fun AlbumGridScreen(
             isMultiSelectMode = false
             selectedItems.clear()
         }
-    } else if (isGuestMode) {
+    } else {
         BackHandler {
             onExitClick()
         }
+    }
+
+    val dpm = remember(context) { context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager }
+    val adminComponent = remember(context) { ComponentName(context, com.example.guestgallery.MyDeviceAdminReceiver::class.java) }
+    var showAdminPermissionDialog by remember { mutableStateOf(!dpm.isAdminActive(adminComponent)) }
+
+    if (showAdminPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showAdminPermissionDialog = false },
+            title = { Text("Screen Locking Permission") },
+            text = { Text("Please activate Device Admin permission so the app can automatically lock your phone's screen when anyone tries to exit the app.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAdminPermissionDialog = false
+                        val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                            putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                            putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Required to physically lock the phone screen when a guest tries to exit the app.")
+                        }
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Text("Enable Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAdminPermissionDialog = false }) {
+                    Text("Later")
+                }
+            }
+        )
     }
 
     // Dialog: Delete Selected Items Confirmation for Timeline
@@ -277,7 +332,11 @@ fun AlbumGridScreen(
                 )
             } else {
                 PhotosTopBar(
+                    isGuestMode = isGuestMode,
                     onAddClick = triggerShowcasePicker,
+                    onSwitchToGooglePhotosClick = {
+                        repository.setGuestMode(true)
+                    },
                     onProfileClick = { showAccountDialog = true }
                 )
             }
@@ -403,10 +462,55 @@ fun AlbumGridScreen(
 // ----------------------------------------------------
 // Photos Header
 // ----------------------------------------------------
+@Composable
+fun GooglePhotosLogoIcon(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(24.dp)) {
+        val size = this.size.width
+        val radius = size / 4f
+        drawArc(
+            color = Color(0xFF4285F4),
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = androidx.compose.ui.geometry.Offset(0f, radius),
+            size = Size(radius * 2, radius * 2)
+        )
+        drawArc(
+            color = Color(0xFFEA4335),
+            startAngle = 270f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = androidx.compose.ui.geometry.Offset(radius, 0f),
+            size = Size(radius * 2, radius * 2)
+        )
+        drawArc(
+            color = Color(0xFFFBBC05),
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = androidx.compose.ui.geometry.Offset(radius * 2f - radius, radius),
+            size = Size(radius * 2, radius * 2)
+        )
+        drawArc(
+            color = Color(0xFF34A853),
+            startAngle = 90f,
+            sweepAngle = 180f,
+            useCenter = true,
+            topLeft = androidx.compose.ui.geometry.Offset(radius, radius * 2f - radius),
+            size = Size(radius * 2, radius * 2)
+        )
+    }
+}
+
+// ----------------------------------------------------
+// Photos Header
+// ----------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotosTopBar(
+    isGuestMode: Boolean,
     onAddClick: () -> Unit,
+    onSwitchToGooglePhotosClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
     CenterAlignedTopAppBar(
@@ -427,6 +531,11 @@ fun PhotosTopBar(
             }
         },
         actions = {
+            if (!isGuestMode) {
+                IconButton(onClick = onSwitchToGooglePhotosClick, modifier = Modifier.padding(end = 8.dp)) {
+                    GooglePhotosLogoIcon()
+                }
+            }
             // Profile switcher icon (stealth entry point)
             Box(
                 modifier = Modifier

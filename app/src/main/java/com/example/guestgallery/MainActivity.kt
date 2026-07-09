@@ -1,5 +1,8 @@
 package com.example.guestgallery
 
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,10 +34,20 @@ class MainActivity : FragmentActivity() {
     }
   }
 
+  fun lockPhonePhysically() {
+    try {
+      val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+      val adminComponent = ComponentName(this, MyDeviceAdminReceiver::class.java)
+      if (dpm.isAdminActive(adminComponent)) {
+        dpm.lockNow()
+      }
+    } catch (e: Exception) {
+      e.printStackTrace()
+    }
+  }
+
   override fun onStop() {
     super.onStop()
-    if (::repository.isInitialized && repository.isSetupCompleted) {
-      repository.setAppLocked(true)
-    }
+    lockPhonePhysically()
   }
 }

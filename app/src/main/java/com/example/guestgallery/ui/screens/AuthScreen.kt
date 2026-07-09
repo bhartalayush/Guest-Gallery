@@ -66,7 +66,9 @@ fun AuthScreen(
 
                 override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                     super.onAuthenticationError(errorCode, errString)
-                    // If user canceled or system credential is not available, we stay in PIN mode
+                    if (action == "exit" || action == "unlock") {
+                        onCancel()
+                    }
                 }
             }
 
