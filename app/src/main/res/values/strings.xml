@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Photos</string>
+    <string name="accessibility_description">Used to programmatically lock the phone screen when exiting the guest gallery while keeping fingerprint/biometric authentication enabled.</string>
 </resources>

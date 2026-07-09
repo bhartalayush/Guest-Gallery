@@ -80,8 +80,20 @@ fun SettingsScreen(
     val adminComponent = remember(context) { ComponentName(context, com.example.guestgallery.MyDeviceAdminReceiver::class.java) }
     var isDeviceAdminActive by remember { mutableStateOf(dpm.isAdminActive(adminComponent)) }
 
-    LaunchedEffect(Unit) {
-        isDeviceAdminActive = dpm.isAdminActive(adminComponent)
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    var isAccessibilityActive by remember { mutableStateOf(com.example.guestgallery.MyAccessibilityService.instance != null) }
+    
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                isAccessibilityActive = com.example.guestgallery.MyAccessibilityService.instance != null
+                isDeviceAdminActive = dpm.isAdminActive(adminComponent)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // Picker launcher for custom launcher icon
@@ -336,6 +348,33 @@ fun SettingsScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+
+                    HorizontalDivider()
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.padding(end = 12.dp))
+                            Column {
+                                Text("Fingerprint Screen Lock", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                                Text("Lock screen while maintaining fingerprint/biometrics unlock (requires Accessibility Service)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                            }
+                        }
+                        Switch(
+                            checked = isAccessibilityActive,
+                            onCheckedChange = { active ->
+                                try {
+                                    val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                        )
                     }
 
                     HorizontalDivider()

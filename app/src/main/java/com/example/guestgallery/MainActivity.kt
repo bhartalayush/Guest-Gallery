@@ -36,6 +36,12 @@ class MainActivity : FragmentActivity() {
 
   fun lockPhonePhysically() {
     try {
+      val service = MyAccessibilityService.instance
+      if (service != null) {
+        val locked = service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_LOCK_SCREEN)
+        if (locked) return
+      }
+
       val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
       val adminComponent = ComponentName(this, MyDeviceAdminReceiver::class.java)
       if (dpm.isAdminActive(adminComponent)) {

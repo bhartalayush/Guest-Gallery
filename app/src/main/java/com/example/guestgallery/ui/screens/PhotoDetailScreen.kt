@@ -411,23 +411,26 @@ fun ZoomableImageItem(
                     )
                 }
                 .pointerInput(Unit) {
-                    detectTransformGestures(panZoomLock = true) { centroid, pan, zoom, rotation ->
-                        val currentScale = scale.value
-                        val newScale = (currentScale * zoom).coerceIn(1f, 5f)
-                        
-                        coroutineScope.launch {
-                            scale.snapTo(newScale)
+                    detectZoomPanGestures(
+                        isZoomed = { scale.value > 1.05f },
+                        onGesture = { pan, zoom ->
+                            val currentScale = scale.value
+                            val newScale = (currentScale * zoom).coerceIn(1f, 5f)
                             
-                            val maxX = (widthPx * newScale - widthPx) / 2f
-                            val maxY = (heightPx * newScale - heightPx) / 2f
-                            
-                            val targetX = (offsetX.value + pan.x).coerceIn(-maxX, maxX)
-                            val targetY = (offsetY.value + pan.y).coerceIn(-maxY, maxY)
-                            
-                            offsetX.snapTo(targetX)
-                            offsetY.snapTo(targetY)
+                            coroutineScope.launch {
+                                scale.snapTo(newScale)
+                                
+                                val maxX = (widthPx * newScale - widthPx) / 2f
+                                val maxY = (heightPx * newScale - heightPx) / 2f
+                                
+                                val targetX = (offsetX.value + pan.x).coerceIn(-maxX, maxX)
+                                val targetY = (offsetY.value + pan.y).coerceIn(-maxY, maxY)
+                                
+                                offsetX.snapTo(targetX)
+                                offsetY.snapTo(targetY)
+                            }
                         }
-                    }
+                    )
                 },
             contentAlignment = Alignment.Center
         ) {
